@@ -73,36 +73,74 @@ This CloudFormation template creates a **security-first infrastructure** followi
 
 ### High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Security & Compliance                     │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ AWS Config   │  │  CloudTrail  │  │ CloudWatch   │     │
-│  │ (Monitoring) │  │ (Audit Logs) │  │   Logs       │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                              │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │              VPC (10.0.0.0/16)                     │    │
-│  │  ┌──────────────────┐    ┌──────────────────┐     │    │
-│  │  │  Public Subnets  │    │  Private Subnets │     │    │
-│  │  │  (2 AZs)         │    │  (2 AZs)         │     │    │
-│  │  │                  │    │                  │     │    │
-│  │  │  [NAT Gateway]   │    │  [RDS Multi-AZ]  │     │    │
-│  │  │                  │    │  [Lambda]        │     │    │
-│  │  └──────────────────┘    └──────────────────┘     │    │
-│  └────────────────────────────────────────────────────┘    │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ CloudFront   │  │     WAF      │  │  S3 Bucket   │     │
-│  │  + HTTPS     │  │  (Protection)│  │ (KMS Encrypt)│     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐                       │
-│  │   Secrets    │  │  KMS Keys    │                       │
-│  │   Manager    │  │ (Encryption) │                       │
-│  └──────────────┘  └──────────────┘                       │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph External
+        Users[Users/Auditors]
+        Threat[Threat Actors]
+    end
+    
+    subgraph AWS Cloud - Compliance Zone
+        subgraph Security Services
+            GD[AWS GuardDuty<br/>Threat Detection]
+            SH[Security Hub<br/>Compliance Dashboard]
+            CT[CloudTrail<br/>Audit Logging]
+            Config[AWS Config<br/>Config Rules]
+        end
+        
+        subgraph Monitoring & Alerting
+            CW[CloudWatch Logs<br/>Centralized Logging]
+            SNS[SNS Topics<br/>Security Alerts]
+            Lambda[Lambda<br/>Auto-Remediation]
+        end
+        
+        subgraph Data Protection
+            KMS[AWS KMS<br/>Encryption Keys]
+            SM[Secrets Manager<br/>Credentials]
+            S3[S3 Buckets<br/>Encrypted Storage]
+        end
+        
+        subgraph Network Security
+            VPC[Private VPC<br/>No IGW]
+            SG[Security Groups<br/>Least Privilege]
+            NACL[Network ACLs<br/>Subnet Protection]
+        end
+        
+        subgraph Compliance
+            PCI[PCI-DSS Controls]
+            HIPAA[HIPAA Controls]
+            SOC2[SOC 2 Controls]
+            GDPR[GDPR Controls]
+        end
+    end
+    
+    Users -->|Authenticated| CT
+    Threat -.->|Blocked| GD
+    
+    GD -->|Findings| SH
+    CT -->|Logs| CW
+    Config -->|Compliance| SH
+    
+    SH -->|Alerts| SNS
+    CW -->|Triggers| Lambda
+    SNS -->|Notifications| Users
+    
+    Lambda -->|Remediate| Config
+    
+    KMS -->|Encrypt| S3
+    SM -->|Protect| VPC
+    VPC --> SG
+    SG --> NACL
+    
+    SH --> PCI
+    SH --> HIPAA
+    SH --> SOC2
+    SH --> GDPR
+    
+    style GD fill:#FF5722
+    style SH fill:#F44336
+    style KMS fill:#9C27B0
+    style VPC fill:#2196F3
 ```
 
 ### Security Layers
