@@ -1,0 +1,23 @@
+# CloudFormation
+*.tfstate
+.terraform/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# AWS
+.aws/
+credentials
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Generated
+diagrams/*.png
